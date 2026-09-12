@@ -1203,16 +1203,16 @@ function renderRadar(){
 }
 function renderMirror(){
   const A=nm('a'),B=nm('b');
-  let h=`<div class="mhead"><span>${esc(A)} → ${esc(B)}</span><span style="text-align:center">축</span><span>${esc(B)} → ${esc(A)}</span><span>더 기운 쪽</span></div>`;
+  let h=`<div class="mhead"><span>${esc(A)}</span><span style="text-align:center">축</span><span>${esc(B)}</span><span>더 기운 쪽</span></div>`;
   AXES.forEach(a=>{
     const ab=S.axes[a.k].ab, ba=S.axes[a.k].ba, d=ab-ba;
     let dl;
     if(Math.abs(d)<=5) dl=`<span class="delta eq"><span class="dot"></span><span class="nm">나란히</span><span class="df">±${Math.abs(d)}</span></span>`;
     else dl=`<span class="delta ${d>0?'a':'b'}"><span class="dot"></span><span class="nm">${d>0?esc(A):esc(B)}</span><span class="df">+${Math.abs(d)}</span></span>`;
     h+=`<div class="mrow" title="${a.desc}">
-      <div class="trk l" data-who="${esc(A)} → ${esc(B)}" style="--n:${ab}"><div class="fill"></div><span class="v ${ab>ba?'hi':''}">${ab}</span></div>
+      <div class="trk l" data-who="${esc(A)}" style="--n:${ab}"><div class="fill"></div><span class="v ${ab>ba?'hi':''}">${ab}</span></div>
       <div class="lab">${a.ko}<small>${a.en}</small></div>
-      <div class="trk r" data-who="${esc(B)} → ${esc(A)}" style="--n:${ba}"><div class="fill"></div><span class="v ${ba>ab?'hi':''}">${ba}</span></div>
+      <div class="trk r" data-who="${esc(B)}" style="--n:${ba}"><div class="fill"></div><span class="v ${ba>ab?'hi':''}">${ba}</span></div>
       ${dl}
     </div>`;
   });
