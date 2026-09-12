@@ -246,7 +246,7 @@ details.schema pre{font-family:var(--mono);font-size:13px;background:var(--ink);
   .top{display:flex;flex-direction:column;gap:22px;padding-top:40px}
   .top .mast,.top .quotes{display:contents}
   .mast>div:nth-child(2){text-align:center;order:1;grid-row:auto;grid-column:auto}
-  .who.a{order:2} .quote.a{order:3} .who.b{order:4} .quote.b{order:5} .sub{order:6;margin:18px auto 0}
+  .sub{order:2;margin:-8px auto 0} .who.a{order:3} .quote.a{order:4} .who.b{order:5} .quote.b{order:6} /* same order as desktop: subtitle right under the title */
   .who{text-align:left}.who.b{direction:rtl;text-align:right}.who .pic{width:96px;height:96px;font-size:38px}.who .nm{font-size:32px}
   .top .quote{margin:6px 0 10px}
   .top .quote::after{bottom:auto;top:-13px;left:40px;border:0;border-left:11px solid transparent;border-right:11px solid transparent;border-bottom:14px solid var(--paper)}
@@ -255,7 +255,7 @@ details.schema pre{font-family:var(--mono);font-size:13px;background:var(--ink);
 .eyebrow{font-family:var(--mono);font-size:13px;letter-spacing:.22em;color:var(--mauve-2);text-transform:uppercase}
 .title{font-family:'SchoolSafetyWave',var(--display);font-size:clamp(46px,8vw,104px);line-height:.98;letter-spacing:-.04em;margin:calc(.30em + (var(--tl,1) - 1) * .28em) auto 10px;max-width:22ch;color:var(--paper);transform:scaleY(1.28);transform-origin:center bottom;text-wrap:balance;text-shadow:var(--title-shadow,6px 0 0 var(--pink))}
 .title.long{font-size:clamp(40px,6.4vw,78px)} .title.xlong{font-size:clamp(34px,5vw,60px)}
-.sub{font-family:var(--serif);font-size:17px;color:var(--pink-soft);text-align:center;max-width:52ch;margin:-4px auto 0;text-wrap:balance}
+.sub{font-family:var(--serif);font-size:17px;color:var(--pink-soft);text-align:center;margin:-4px auto 0;word-break:keep-all} /* breaks only at the user's "//" (or when it can't fit) */
 .who{display:flex;gap:16px;align-items:center}
 .who.b{direction:rtl;text-align:right}
 .who .picwrap{position:relative;flex:none}
@@ -727,7 +727,7 @@ function blank(){
 function sample(){
   const s=blank();
   s.title='닻과 배';
-  s.subtitle='한 사람은 떠날 수 있다고 믿고, 한 사람은 떠나지 않을 거라고 믿는다. 둘 중 누가 더 자유로운지는 이 문장만으로는 알 수 없다.';
+  s.subtitle='한 사람은 떠날 수 있다고 믿고, 한 사람은 떠나지 않을 거라고 믿는다. // 둘 중 누가 더 자유로운지는 이 문장만으로는 알 수 없다.';
   s.a={name:'NPC',sub:'NPC · 27 · 복원사',tags:['#말수 적음','#기억력 좋음','#먼저 안 부른다'],quote:'가고 싶으면 가. 나 붙잡는 사람 아니야.',img:'',src:'',crop:null};
   s.b={name:'PC',sub:'PC · 29 · 선원',tags:['#잘 웃음','#약속 잘 안 지킴','#돌아온다'],quote:'너 지금 그 얼굴, 가라는 얼굴 아니잖아.',img:'',src:'',crop:null};
   const v={attachment:[82,61],trust:[48,77],dependence:[74,39],influence:[70,52],intimacy:[36,68],control:[28,44],avoidance:[71,33],conflict:[79,41]};
