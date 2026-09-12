@@ -288,6 +288,8 @@ details.schema pre{font-family:var(--mono);font-size:13px;background:var(--ink);
 /* snackbar */
 #snack{position:fixed;left:50%;bottom:28px;transform:translate(-50%,16px);z-index:80;max-width:min(560px,calc(100vw - 32px));padding:12px 18px;background:var(--paper);color:var(--ink);font-family:var(--mono);font-size:14px;letter-spacing:.04em;line-height:1.5;border-radius:3px;box-shadow:0 8px 30px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s}
 #snack.on{opacity:1;transform:translate(-50%,0)}
+#snack.ok{background:var(--pink);color:var(--ink);font-size:15px;font-weight:500;padding:14px 20px}
+#snack.ok::before{content:"✓  ";font-weight:700}
 section.blk{margin-top:64px}
 .blkhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;border-bottom:1px solid var(--rule);padding-bottom:10px;margin-bottom:24px}
 .blkhead .en{width:100%}
@@ -995,7 +997,7 @@ function clearImg(c){S[c].img='';S[c].src='';S[c].crop=null;fillEditor();save();
 
 /* ───────────────────────── json in/out ───────────────────────── */
 let snackTimer=null;
-function toast(id,msg){const t=document.getElementById('snack');t.textContent=msg;t.classList.add('on');clearTimeout(snackTimer);snackTimer=setTimeout(()=>t.classList.remove('on'),3200);}
+function toast(id,msg,kind){const t=document.getElementById('snack');t.textContent=msg;t.classList.toggle('ok',kind==='ok');t.classList.add('on');clearTimeout(snackTimer);snackTimer=setTimeout(()=>t.classList.remove('on'),kind==='ok'?4500:3200);} // kind 'ok' = success style, shown a bit longer
 function repairJSON(str){
   // walk once; remember the last point where an object closed inside still-open containers
   let stack=[],inStr=false,esc=false,lastGood=-1,snap=null;
@@ -1046,18 +1048,20 @@ function importJSON(){
   if(!objs.length){toast('toast1','JSON을 찾지 못했습니다. AI 답변의 코드 블록까지 함께 붙여 주세요.');return;}
   const parts=[]; objs.forEach(o=>{const r=applyJSON(o); if(r&&r!=='변경 없음') parts.push(r);});
   const missing=S.situations.filter(x=>!(x.title||x.a||x.b)).map(x=>x.key);
-  toast('toast1',(lastImportRepaired?'잘린 JSON을 복구해 ':'')+(parts.length?'적용했습니다 · '+[...new Set(parts.join(' · ').split(' · '))].join(' · ')+(missing.length&&missing.length<8?' · 남은 장면: '+missing.join(', '):''):'반영할 항목이 없습니다.'));
+  if(parts.length) toast('toast1',(lastImportRepaired?'잘린 JSON을 복구해 ':'')+'적용 완료 · '+[...new Set(parts.join(' · ').split(' · '))].join(' · ')+(missing.length&&missing.length<8?' · 남은 장면: '+missing.join(', '):''),'ok');
+  else toast('toast1','반영할 항목이 없습니다.');
   document.getElementById('json-in').value=''; document.getElementById('import-btn').disabled=true; renderProgress();
 }
 function applyJSON(obj){
     const b=blank();
     // situations may come as array with fewer/more entries; align by key or index
+    let incoming=[]; // scene keys that actually arrived with content — counted before aligning,
+                     // since the aligned array also carries the scenes already on screen (e.g. the example)
     if(Array.isArray(obj.situations)){
-      const arr=S.situations.map((base,i)=>{
-        const keyed=obj.situations.some(x=>x&&x.key); const hit=obj.situations.find(x=>x&&x.key===base.key)||(!keyed?obj.situations[i]:null)||{};
-        return merge(base,hit);
-      });
-      obj.situations=arr;
+      const keyed=obj.situations.some(x=>x&&x.key);
+      const hits=S.situations.map((base,i)=>obj.situations.find(x=>x&&x.key===base.key)||(!keyed?obj.situations[i]:null));
+      incoming=S.situations.filter((base,i)=>{ const h=hits[i]; return h&&(h.title||h.a||h.b); }).map(base=>base.key);
+      obj.situations=S.situations.map((base,i)=>merge(base,hits[i]||{}));
     }
     if(obj.axes) for(const k in obj.axes){ if(obj.axes[k]){ if('ab' in obj.axes[k]) obj.axes[k].ab=clamp(obj.axes[k].ab); if('ba' in obj.axes[k]) obj.axes[k].ba=clamp(obj.axes[k].ba);} }
     if(obj.dynamics) for(const k in obj.dynamics){ if(typeof obj.dynamics[k]==='string') obj.dynamics[k]={who:obj.dynamics[k],why:''}; }
@@ -1066,10 +1070,10 @@ function applyJSON(obj){
     S=merge(S,merge(b,obj,true));
     fillEditor(); save(); if(!document.getElementById('view').hidden) render();
     S.meta=S.meta||{scenes:[],axes:[],dyn:false,verdict:false,poster:false};
-    if(Array.isArray(obj.situations)) S.meta.scenes=[...new Set([...(S.meta.scenes||[]),...obj.situations.filter(x=>x&&x.key&&(x.title||x.a||x.b)).map(x=>x.key)])];
+    if(incoming.length) S.meta.scenes=[...new Set([...(S.meta.scenes||[]),...incoming])];
     if(obj.axes) S.meta.axes=[...new Set([...(S.meta.axes||[]),...Object.keys(obj.axes).filter(k=>obj.axes[k]&&('ab' in obj.axes[k]||'ba' in obj.axes[k]))])];
     if(obj.dynamics) S.meta.dyn=true; if(obj.verdict) S.meta.verdict=true; if(obj.title!==undefined||obj.a||obj.b) S.meta.poster=true; save(); renderProgress();
-    const got=[]; if(obj.situations) got.push('장면 '+obj.situations.filter(x=>x&&(x.title||x.a||x.b)).length+'개'); if(obj.axes) got.push('8축 점수'); if(obj.dynamics) got.push('관계 역학'); if(obj.verdict) got.push('최종 판정'); if(obj.title!==undefined||obj.subtitle!==undefined) got.push('포스터 문구'); if(obj.a||obj.b) got.push('인물 정보');
+    const got=[]; if(incoming.length) got.push('장면 '+incoming.length+'개'); if(obj.axes) got.push('8축 점수'); if(obj.dynamics) got.push('관계 역학'); if(obj.verdict) got.push('최종 판정'); if(obj.title!==undefined||obj.subtitle!==undefined) got.push('포스터 문구'); if(obj.a||obj.b) got.push('인물 정보');
     return got.join(' · ')||'변경 없음';
 }
 function copy(t){ if(navigator.clipboard?.writeText) return navigator.clipboard.writeText(t); return Promise.reject(); }
