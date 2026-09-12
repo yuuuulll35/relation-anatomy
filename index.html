@@ -253,7 +253,7 @@ details.schema pre{font-family:var(--mono);font-size:13px;background:var(--ink);
   .top .quote.b::after{left:auto;right:40px;border-left:11px solid transparent;border-right:11px solid transparent}
 }
 .eyebrow{font-family:var(--mono);font-size:13px;letter-spacing:.22em;color:var(--mauve-2);text-transform:uppercase}
-.title{font-family:'SchoolSafetyWave',var(--display);font-size:clamp(46px,8vw,104px);line-height:.98;letter-spacing:-.04em;margin:.30em auto 10px;max-width:22ch;color:var(--paper);transform:scaleY(1.28);transform-origin:center bottom;text-wrap:balance;text-shadow:var(--title-shadow,6px 0 0 var(--pink))}
+.title{font-family:'SchoolSafetyWave',var(--display);font-size:clamp(46px,8vw,104px);line-height:.98;letter-spacing:-.04em;margin:calc(.30em + (var(--tl,1) - 1) * .28em) auto 10px;max-width:22ch;color:var(--paper);transform:scaleY(1.28);transform-origin:center bottom;text-wrap:balance;text-shadow:var(--title-shadow,6px 0 0 var(--pink))}
 .title.long{font-size:clamp(40px,6.4vw,78px)} .title.xlong{font-size:clamp(34px,5vw,60px)}
 .sub{font-family:var(--serif);font-size:17px;color:var(--pink-soft);text-align:center;max-width:52ch;margin:-4px auto 0;text-wrap:balance}
 .who{display:flex;gap:16px;align-items:center}
@@ -277,6 +277,8 @@ details.schema pre{font-family:var(--mono);font-size:13px;background:var(--ink);
 .quote .by{display:block;font-family:var(--mono);font-size:13px;letter-spacing:.14em;color:var(--mauve);margin-top:10px}
 .quote.b{text-align:right}
 .quote.b .by{text-align:right}
+/* 한 줄 입력칸의 "//"가 줄바꿈(\n)으로 바뀌어 들어오는 자리 */
+#p-title,#p-sub,.who .rn,.quote .txt,.card h3,.card .pr,.tug .why,.verdict .type,.verdict .line{white-space:pre-line}
 .quote .txt:not(:empty)::before{content:"“"} .quote .txt:not(:empty)::after{content:"”"}
 @media print{#tip,#snack{display:none!important}}
 /* hover tooltip */
@@ -478,6 +480,7 @@ section.blk{margin-top:64px}
   <div>
     <fieldset>
       <legend>기본 정보<span class="k">TITLE · CHARACTERS</span></legend>
+      <p class="desc">한 줄 입력칸에 <b style="color:var(--pink)">//</b>를 넣으면 포스터에서 그 자리에서 줄이 바뀌어요. 예: 닻과 // 배 (이름·태그 제외)</p>
       <div class="stack">
         <div class="f"><label for="i-title">포스터 제목</label><input id="i-title" data-path="title" maxlength="14" placeholder="8자 이내 권장"></div>
         <div class="f"><label for="i-sub">한 줄 소개</label><input id="i-sub" data-path="subtitle" placeholder="두 사람의 관계를 한 문장으로"></div>
@@ -873,6 +876,7 @@ function get(p){return p.split('.').reduce((o,k)=>o?.[k],S);}
 function set(p,v){const ks=p.split('.');let o=S;ks.slice(0,-1).forEach(k=>{o[k]=o[k]??{};o=o[k];});o[ks.at(-1)]=v;}
 const clamp=(n)=>Math.max(0,Math.min(100,Math.round(Number(n)||0)));
 const esc=(s)=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const lb=(s)=>String(s??'').replace(/(?<!:)\s*\/\/\s*/g,'\n'); // "//" in a one-line input = line break (leaves "https://" alone)
 
 /* ───────────────────────── editor build ───────────────────────── */
 function buildEditor(){
@@ -1154,10 +1158,12 @@ const iGa=(w)=>{const ch=w.charCodeAt(w.length-1); if(ch>=0xAC00&&ch<=0xD7A3) re
 const eunNeun=(w)=>{const ch=w.charCodeAt(w.length-1); if(ch>=0xAC00&&ch<=0xD7A3) return (ch-0xAC00)%28?'은':'는'; return '는';};
 function render(){
   const A=nm('a'),B=nm('b');
-  txt('p-title',S.title||`${A} × ${B}`);
-  { const tl=(S.title||`${A} × ${B}`).replace(/\s+/g,'').length; const te=document.getElementById('p-title'); te.classList.toggle('long',tl>8&&tl<=14); te.classList.toggle('xlong',tl>14); }
+  const ttl=lb(S.title)||`${A} × ${B}`;
+  txt('p-title',ttl);
+  { const tl=Math.max(...ttl.split('\n').map(l=>l.replace(/\s+/g,'').length)); const te=document.getElementById('p-title'); te.classList.toggle('long',tl>8&&tl<=14); te.classList.toggle('xlong',tl>14); // size by the longest line
+    te.style.setProperty('--tl',ttl.split('\n').length); } // scaleY(1.28) grows upward from the bottom, so each extra line needs ~.28em more room above
   document.getElementById('p-pair').textContent=`${A}  ⇄  ${B}`;
-  txt('p-sub',S.subtitle||'');
+  txt('p-sub',lb(S.subtitle));
   // dynamic vertical type: name the freer one if known
   const fr=S.dynamics.freer.who, vu=S.dynamics.vulnerable.who;
   const fN=fr==='A'?A:B, vN=vu==='A'?A:B;
@@ -1165,12 +1171,12 @@ function render(){
   ['a','b'].forEach(c=>{
     const other=c==='a'?B:A;
     txt(`p-${c}-name`,S[c].name||'');
-    txt(`p-${c}-sub`,S[c].sub||'');
+    txt(`p-${c}-sub`,lb(S[c].sub));
     document.getElementById(`p-${c}-tags`).innerHTML=(S[c].tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
     const pic=document.getElementById(`p-${c}-pic`), wrap=document.getElementById(`p-${c}-wrap`);
     if(S[c].img){pic.style.backgroundImage=`url(${S[c].img})`;pic.textContent='';pic.className='pic has';wrap.className='picwrap has';}
     else{pic.style.backgroundImage='';pic.textContent=nm(c).slice(0,1);pic.className='pic';wrap.className='picwrap';}
-    txt(`p-${c}-quote`,S[c].quote||'');
+    txt(`p-${c}-quote`,lb(S[c].quote));
     document.getElementById(`p-${c}-quote-by`).textContent=S[c].quote?`${nm(c)} → ${other}`:'';
   });
   document.getElementById('lg-a').textContent=A; document.getElementById('lg-a2').textContent=B;
@@ -1232,7 +1238,7 @@ function renderDyn(){
         ${w?`<span class="mk ${cls}"></span><span class="who ${cls}">${w==='A'?esc(A):esc(B)}</span>`:`<span class="who n">어느 쪽으로도 기울지 않는다</span>`}
       </div>
       <div class="side b ${w==='B'?'on':''}">${esc(B)}</div>
-      ${why?`<div class="why">${esc(why)}</div>`:''}
+      ${why?`<div class="why">${esc(lb(why))}</div>`:''}
     </div>`;}).join('');
   const st=document.getElementById('p-sym');
   const ca=DYN.filter(d=>S.dynamics[d.k].who==='A').length, cb=DYN.filter(d=>S.dynamics[d.k].who==='B').length, tot=ca+cb, gap=Math.abs(ca-cb);
@@ -1248,8 +1254,8 @@ function renderSits(){
     return `<article class="card">
       <span class="k">${String(i+1).padStart(2,'0')}</span>
       <div class="eyebrow" style="color:var(--mauve)">${esc(s.key)}</div>
-      <h3>${esc(s.title||s.key)}</h3>
-      ${s.prompt?`<p class="pr">${esc(s.prompt)}</p>`:''}
+      <h3>${esc(lb(s.title||s.key))}</h3>
+      ${s.prompt?`<p class="pr">${esc(lb(s.prompt))}</p>`:''}
       ${s.a?`<p class="re a"><b>${esc(A)}</b>${esc(s.a)}</p>`:''}
       ${s.b?`<p class="re b"><b>${esc(B)}</b>${esc(s.b)}</p>`:''}
       ${s.analysis?`<p class="an"><b>두 반응이 만나는 곳</b>${esc(s.analysis)}</p>`:''}
@@ -1265,8 +1271,8 @@ function renderVerdict(){
   document.getElementById('tk-no').textContent='No. '+serial;
   const d=new Date(), ymd=d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
   document.getElementById('tk-issued').textContent='ISSUED '+ymd+' · '+A+' × '+B;
-  document.getElementById('p-vtype2').textContent=S.verdict.type||'—';
-  document.getElementById('p-vline').textContent=S.verdict.line||'';
+  document.getElementById('p-vtype2').textContent=lb(S.verdict.type)||'—';
+  document.getElementById('p-vline').textContent=lb(S.verdict.line);
   document.getElementById('p-vreason').textContent=S.verdict.reason||'';
   document.getElementById('p-vparadox').textContent=S.verdict.paradox||'';
 }
@@ -1402,7 +1408,7 @@ const TOUR=[
   {el:()=>[document.getElementById('import-btn'),document.getElementById('progress')], prep:()=>show('edit'),
    text:`아래 항목(장면 · 8축 점수 · 관계 역학 · 최종 판정 · 포스터 문구)에 전부 불이 들어오면 '적용하기'를 눌러 포스터에 반영해요.`},
   {el:()=>document.querySelector('#edit fieldset'), prep:()=>show('edit'),
-   text:`왼쪽 영역에서 이름, 대사, 점수, 장면 문구를 세부 수정할 수 있어요. 프로필 사진도 여기서 넣어요.`},
+   text:`왼쪽 영역에서 이름, 대사, 점수, 장면 문구를 세부 수정할 수 있어요. 한 줄 입력칸에 // 를 넣으면 그 자리에서 줄이 바뀌어요.`},
   {el:()=>document.getElementById('tab-view'), prep:()=>show('edit'),
    text:`고친 내용은 '미리보기'에서 바로 확인해요.`},
   {el:()=>document.getElementById('fab'), prep:()=>{ show('view'); toggleTools(false); },
